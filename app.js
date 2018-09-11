@@ -1,7 +1,3 @@
-/*! 
-* Axios-0.18.0 
-* Licensed under the MIT License. 
-*/ 
 const AWS = require('aws-sdk');
 const BoxSDK = require('box-node-sdk');
 const Axios = require('axios');

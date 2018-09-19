@@ -1,6 +1,6 @@
 {
   "name": "amazon-rekognition-image-for-box-skills",
-  "version": "1.0.0",
+  "version": "1.0.11",
   "description": "On POST from Box Skills file upload, this function calls Amazon Rekognition and adds meta data to file in Box",
   "main": "app.js",
   "scripts": {

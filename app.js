@@ -71,6 +71,7 @@ exports.handler = (event, context, callback) => {
                                 }
                                 //Create a Keyword Card
                                 var keywordLabels = {
+                                    created_at: new Date().toISOString(),
                                     type: "skill_card",
                                     skill_card_type: "keyword",
                                     skill: {
@@ -121,6 +122,7 @@ exports.handler = (event, context, callback) => {
                                     }
                                     //Create a Keyword Card
                                     var keywordText = {
+                                        created_at: new Date().toISOString(),
                                         type: "skill_card",
                                         skill_card_type: "keyword",
                                         skill: {
@@ -161,6 +163,7 @@ exports.handler = (event, context, callback) => {
                                         }
                                         //Create a Keyword Card
                                         var keywordCeleb = {
+                                            created_at: new Date().toISOString(),
                                             type: "skill_card",
                                             skill_card_type: "keyword",
                                             skill: {
@@ -211,6 +214,7 @@ exports.handler = (event, context, callback) => {
                                             
                                             //Create a Keyword Card
                                             var keywordModeration = {
+                                                created_at: new Date().toISOString(),
                                                 type: "skill_card",
                                                 skill_card_type: "keyword",
                                                 skill: {
@@ -229,11 +233,18 @@ exports.handler = (event, context, callback) => {
                                             console.log(keywordModeration);
                                             metadata.cards.push(keywordModeration);
                                         }
-                                        //Write any keyword cards to Box File
-                                        console.log(JSON.stringify(metadata));
-                                        if(metadata.cards.length > 0) {
-                                            boxWriteClient.files.addMetadata(fileID, 'global', 'boxSkillsCards', metadata);
-                                        } 
+                                        
+                                        //Delete default placeholder card from file metadata
+                                        boxWriteClient.files.deleteMetadata(fileID, 'global', 'boxSkillsCards')
+                                            .then(resp => console.log('File metadata deletion completed.'))
+                                            .catch(err => console.log('File metadata deletion attempted - ', err.statusCode))
+                                            .finally(() => {
+                                                //Write any keyword cards to Box file
+                                                console.log(JSON.stringify(metadata));
+                                                if(metadata.cards.length > 0) {
+                                                    boxWriteClient.files.addMetadata(fileID, 'global', 'boxSkillsCards', metadata);
+                                                }
+                                            });
                                     }
                                 });
                             });

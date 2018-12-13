@@ -1,0 +1,3 @@
+[submodule "box-skills-kit-nodejs"]
+	path = box-skills-kit-nodejs
+	url = https://github.com/box/box-skills-kit-nodejs.git

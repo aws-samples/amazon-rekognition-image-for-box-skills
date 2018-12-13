@@ -4,13 +4,13 @@
   "description": "On POST from Box Skills file upload, this function calls Amazon Rekognition and adds meta data to file in Box",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "postinstall": "npm link box-skills-kit-nodejs/skills-kit-library;"
   },
   "author": "Joe Norman",
   "license": "MIT-0",
   "dependencies": {
     "aws-sdk": "^2.292.0",
-    "axios": "^0.18.0",
-    "skills-kit-library": "file:skills-kit-library"
+    "axios": "^0.18.0"
   }
 }

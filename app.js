@@ -1,23 +1,23 @@
 const AWS = require('aws-sdk');
-const BoxSDK = require('box-node-sdk');
 const Axios = require('axios');
+const { FilesReader, SkillsWriter, SkillsErrorEnum } = require('skills-kit-library/skills-kit-2.0');
 
 exports.handler = (event, context, callback) => {
   
-    //Parse event body
-    var body = JSON.parse(event.body);
-    console.log(body);
-    var fileID = body.source.id;
-    var fileName = body.source.name;
-    var writeAccessToken = body.token.write.access_token;
-    var readAccessToken = body.token.read.access_token;
-
-    //Initialize Box Clients
-    var boxWriteClient = new BoxSDK({clientID: 'unused', clientSecret: 'unused'}).getBasicClient(writeAccessToken);
+    //Print event body to console
+    console.log(JSON.parse(event.body));
+    
+    //Initialize Helper Functions from Box Skills Kit
+    var filesReader = new FilesReader(event.body); //used to help download the file from Box
+    var skillsWriter = new SkillsWriter(filesReader.getFileContext()); //used to help write Skills Cards back to Box
+    
+    skillsWriter.saveProcessingCard(); //Sends message to Box UI that Skills are being processed
 
     //Download File from Box
-    var localFileName = Date.now().toString() + "_" + fileName; //add timestamp to make sure S3 key will be unique, to ensure read-after-write consistency
-    var boxGetPath = "https://api.box.com/2.0/files/" + fileID + "/content?access_token=" + readAccessToken;
+    var localFileName = Date.now().toString() + "_" + filesReader.getFileContext().fileName; //add timestamp to make sure S3 key will be unique, to ensure read-after-write consistency
+    console.log(filesReader.getFileContext());
+    var boxGetPath = filesReader.getFileContext().fileDownloadURL;
+
     Axios.get(boxGetPath, { responseType: 'arraybuffer' })
         .then(response => {
             var buffer = new Buffer(response.data, 'binary');
@@ -38,7 +38,7 @@ exports.handler = (event, context, callback) => {
 
                     //AMAZON REKOGNITION CALLS START HERE
                     var rekognition = new AWS.Rekognition({apiVersion: "2016-06-27"});
-                    let metadata = {cards: []}; //each keyword card from the separate Rekognition calls will be pushed to the 'cards' array
+                    var cards = []; //this array will hold each Skills card created in this function to eventually post to Box
                 
                     //Amazon Rekognition - DetectLabels
                     var labelParams = {
@@ -69,26 +69,10 @@ exports.handler = (event, context, callback) => {
                                         text: data.Labels[i].Name
                                     });
                                 }
-                                //Create a Keyword Card
-                                var keywordLabels = {
-                                    created_at: new Date().toISOString(),
-                                    type: "skill_card",
-                                    skill_card_type: "keyword",
-                                    skill: {
-                                        type: "service",
-                                        id: body.skill.id
-                                    },
-                                    invocation: {
-                                        type: "skill_invocation",
-                                        id: body.id 
-                                    },
-                                    skill_card_title: {
-                                        message: "Labels"
-                                    },
-                                    entries: entries
-                                };
+                                //Create a Topics Card
+                                var keywordLabels = skillsWriter.createTopicsCard(entries, null, "Labels");
                                 console.log(keywordLabels);
-                                metadata.cards.push(keywordLabels);    
+                                cards.push(keywordLabels);    
                             }
                         }
 
@@ -120,26 +104,10 @@ exports.handler = (event, context, callback) => {
                                             });
                                         }
                                     }
-                                    //Create a Keyword Card
-                                    var keywordText = {
-                                        created_at: new Date().toISOString(),
-                                        type: "skill_card",
-                                        skill_card_type: "keyword",
-                                        skill: {
-                                            type: "service",
-                                            id: body.skill.id
-                                        },
-                                        invocation: {
-                                            type: "skill_invocation",
-                                            id: body.id 
-                                        },
-                                        skill_card_title: {
-                                            message: "Detected Text"
-                                        },
-                                        entries: entries
-                                    };
+                                    //Create a Topics Card
+                                    var keywordText = skillsWriter.createTopicsCard(entries, null, "Detected Text");
                                     console.log(keywordText);
-                                    metadata.cards.push(keywordText);
+                                    cards.push(keywordText);
                                 }
                             }
 
@@ -161,26 +129,10 @@ exports.handler = (event, context, callback) => {
                                                 text: data.CelebrityFaces[i].Name
                                             });
                                         }
-                                        //Create a Keyword Card
-                                        var keywordCeleb = {
-                                            created_at: new Date().toISOString(),
-                                            type: "skill_card",
-                                            skill_card_type: "keyword",
-                                            skill: {
-                                                type: "service",
-                                                id: body.skill.id
-                                            },
-                                            invocation: {
-                                                type: "skill_invocation",
-                                                id: body.id 
-                                            },
-                                            skill_card_title: {
-                                                message: "Celebrities"
-                                            },
-                                            entries: entries
-                                        };
+                                        //Create a Topics Card
+                                        var keywordCeleb = skillsWriter.createTopicsCard(entries, null, "Celebrities");
                                         console.log(keywordCeleb);
-                                        metadata.cards.push(keywordCeleb);
+                                        cards.push(keywordCeleb);
                                     }
                                 }
 
@@ -213,38 +165,19 @@ exports.handler = (event, context, callback) => {
                                             }
                                             
                                             //Create a Keyword Card
-                                            var keywordModeration = {
-                                                created_at: new Date().toISOString(),
-                                                type: "skill_card",
-                                                skill_card_type: "keyword",
-                                                skill: {
-                                                    type: "service",
-                                                    id: body.skill.id
-                                                },
-                                                invocation: {
-                                                    type: "skill_invocation",
-                                                    id: body.id 
-                                                },
-                                                skill_card_title: {
-                                                    message: "Moderation Flags"
-                                                },
-                                                entries: entries
-                                            };
+                                            var keywordModeration = skillsWriter.createTopicsCard(entries, null, "Moderation Flags");
                                             console.log(keywordModeration);
-                                            metadata.cards.push(keywordModeration);
+                                            cards.push(keywordModeration);
                                         }
                                         
-                                        //Delete default placeholder card from file metadata
-                                        boxWriteClient.files.deleteMetadata(fileID, 'global', 'boxSkillsCards')
-                                            .then(resp => console.log('File metadata deletion completed.'))
-                                            .catch(err => console.log('File metadata deletion attempted - ', err.statusCode))
-                                            .finally(() => {
-                                                //Write any keyword cards to Box file
-                                                console.log(JSON.stringify(metadata));
-                                                if(metadata.cards.length > 0) {
-                                                    boxWriteClient.files.addMetadata(fileID, 'global', 'boxSkillsCards', metadata);
-                                                }
-                                            });
+                                        //Save cards to Box Skills
+                                        skillsWriter.saveDataCards(cards)
+                                            .then(resp => console.log('Skill Cards Posted.'))
+                                            .catch(error => {
+                                                console.error(`Skill processing failed for file:
+                                            ${filesReader.getFileContext().fileId} with error: ${error.message}`);
+                                                skillsWriter.saveErrorCard(SkillsErrorEnum.UNKNOWN);
+                                              });
                                     }
                                 });
                             });

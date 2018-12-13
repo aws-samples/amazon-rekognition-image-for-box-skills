@@ -1,6 +1,6 @@
 {
   "name": "amazon-rekognition-image-for-box-skills",
-  "version": "1.0.11",
+  "version": "1.1.0",
   "description": "On POST from Box Skills file upload, this function calls Amazon Rekognition and adds meta data to file in Box",
   "main": "app.js",
   "scripts": {
@@ -11,6 +11,6 @@
   "dependencies": {
     "aws-sdk": "^2.292.0",
     "axios": "^0.18.0",
-    "box-node-sdk": "^1.20.0"
+    "skills-kit-library": "file:skills-kit-library"
   }
 }

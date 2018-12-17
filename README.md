@@ -2,7 +2,10 @@
 
 Sample application using Amazon Rekognition Image, Amazon S3, and AWS Lambda using Box Skills events
 
-Requires locally installed copy of box/box-skills-kit-nodejs.
+To install:
+git clone <repo URL>
+git submodule update -init --recursive
+npm install
 
 ## License Summary
 
